@@ -18,7 +18,7 @@ Shared types, error codes, `PaymentInfo` encoding and the payment hash are expor
 
 | Network           | `AuthCaptureEscrow`                                        |
 | ----------------- | ---------------------------------------------------------- |
-| `stellar:testnet` | `CAZUU5HON2LQBRLWNTQX2NFWB7AYMCZRZT6C6N7KUPP6AOAXNFCF6FK2` |
+| `stellar:testnet` | `CCB3W5542IQIVWT3ZDTSQIN2LPRMVYLZ2KKQOJT2CTIIDDTYIQVHHCCI` |
 | `stellar:pubnet`  | none yet                                                   |
 
 Every role accepts `escrowAddresses` to override the deployment per network (local networks, new deployments).
@@ -106,7 +106,6 @@ const facilitator = new x402Facilitator().register(
 | `maxTransactionFeeStroops` | `1_000_000` | Ceiling on `minResourceFee + inclusionFeeStroops`; above it verify fails with `invalid_auth_capture_stellar_fee_exceeds_maximum`. Escrow calls write persistent state with a TTL up to the refund deadline. |
 | `inclusionFeeStroops` | `100` | Inclusion bid added to the simulated resource fee. |
 | `feeTerms` | zero fees | Advertised on `/supported`. |
-| `allowOperatorConsent` | `false` | Accept `receiverAuthorizer == captureAuthorizer` (a server running its own facilitator); `consentEntry` is then omitted. |
 | `selectCaptureAuthorizer` | round-robin | Chooses the advertised operator among the signers. |
 
 Verification checks the envelope and `extra`, the canonical escrow, that `captureAuthorizer` is a facilitator signer, the exact shape of every entry (address credentials only, root call and arguments, sub-invocations), entry expiration, Ed25519 signatures of account entries, `preApprovalExpiry`, payment state, fee bounds, and facilitator safety (no facilitator address as payer, receiver, receiver authorizer, fee receiver, funder or entry signer). It then simulates the call from the operator account in enforcing mode with the operator's source-account entry attached, checks the fee ceiling, and compares the net token balance changes of the simulation with the spec table. Settle re-runs verification, builds the transaction with the simulated resources, signs it as source, submits, and polls. `amount` in the settle response is what the call collected, charged, captured, voided or refunded.

@@ -63,7 +63,6 @@ export interface VerifySettings {
   escrowAddresses?: Readonly<Record<string, string>>;
   maxTransactionFeeStroops: number;
   inclusionFeeStroops: number;
-  allowOperatorConsent: boolean;
   /** Every address the facilitator controls. */
   facilitatorAddresses: ReadonlySet<string>;
 }
@@ -396,12 +395,10 @@ function paymentInfoSafety(
   funder?: string,
 ): string | undefined {
   const facilitator = ctx.settings.facilitatorAddresses;
-  const operatorConsent =
-    ctx.settings.allowOperatorConsent && info.receiverAuthorizer === info.operator;
   return facilitatorRole(facilitator, {
     payer: info.payer,
     receiver: info.receiver,
-    receiver_authorizer: operatorConsent ? null : info.receiverAuthorizer,
+    receiver_authorizer: info.receiverAuthorizer,
     fee_receiver: info.feeReceiver,
     funder,
   });
@@ -432,13 +429,10 @@ async function consentEntries(
   });
 
   if (consent === info.operator) {
-    // The escrow skips the consent check when the consent address is the operator.
-    if (!ctx.settings.allowOperatorConsent) {
-      return {
-        fail: invalid(Errors.ErrFacilitatorSafety, undefined, "operator is the consent address"),
-      };
-    }
-    if (consentXdr !== undefined) return consentFail("consentEntry must be omitted");
+    // The escrow rejects payments whose consent address is the operator.
+    return {
+      fail: invalid(Errors.ErrFacilitatorSafety, undefined, "operator is the consent address"),
+    };
   } else {
     const entry = decodeAuthEntry(consentXdr);
     if (!entry) return consentFail("consentEntry missing or malformed");

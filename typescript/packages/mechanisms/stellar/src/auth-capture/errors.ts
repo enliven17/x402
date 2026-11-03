@@ -57,4 +57,7 @@ export const ESCROW_ERROR_TO_REASON: Readonly<Record<number, string>> = {
   15: ErrExpired, // AfterRefundExpiry
   16: ErrInsufficientBalance, // RefundExceedsCapture
   17: ErrSimulationFailed, // TokenCollectionFailed
+  18: ErrFacilitatorSafety, // InvalidConsentAddress
+  19: ErrFacilitatorSafety, // InvalidFunder
+  20: ErrExtra, // InvalidParty
 };

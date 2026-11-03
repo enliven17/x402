@@ -717,7 +717,7 @@ describe("lifecycle", () => {
     expect(await verify(byOperator)).toBe("invalid_auth_capture_stellar_facilitator_safety");
   });
 
-  it("handles the operator as consent address only when allowed", async () => {
+  it("rejects the operator as consent address", async () => {
     authorized();
     const req = requirements({ receiverAuthorizer: operator });
     const info = paymentInfo(req);
@@ -726,15 +726,5 @@ describe("lifecycle", () => {
     expect((await facilitator().verify(paymentPayload(req, payload), req)).invalidReason).toBe(
       "invalid_auth_capture_stellar_facilitator_safety",
     );
-    const own = facilitator({ allowOperatorConsent: true });
-    expect(await own.verify(paymentPayload(req, payload), req)).toEqual({ isValid: true, payer });
-    expect(
-      (
-        await own.verify(
-          paymentPayload(req, { ...payload, consentEntry: await consent(lastCall) }),
-          req,
-        )
-      ).invalidReason,
-    ).toBe("invalid_auth_capture_stellar_consent_entry");
   });
 });

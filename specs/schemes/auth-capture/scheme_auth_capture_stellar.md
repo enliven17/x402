@@ -46,6 +46,8 @@ The facilitator is the operator. It submits every transaction from its own accou
 
 The **consent address** is `payment_info.receiver_authorizer` when set, otherwise `payment_info.receiver`. The escrow calls `require_auth()` on it, so the authorization entry covers the function name and every argument of the call.
 
+The escrow rejects at collect a payment whose consent address is the operator, and a payment that names the escrow itself as payer, receiver, or fee receiver. `refund` rejects the operator or the escrow as `funder`. The operator therefore cannot consent on the receiver's behalf or fund a refund, whatever the facilitator signs.
+
 Behavior:
 
 - `authorize` transfers `max_amount` from the payer into the escrow and records it as capturable.
@@ -143,7 +145,7 @@ Steps 1–6 are the same, except the client simulates `charge`. After the resour
 | --- | --- | --- |
 | `authorizationEntry` | `string` | Base64 XDR `SorobanAuthorizationEntry` signed by the payer. |
 | `salt` | `string` | 32 bytes, hex. `PaymentInfo.salt`. MUST be random per payment. |
-| `preApprovalExpiry` | `number` | Unix seconds. `PaymentInfo.pre_approval_expiry`. MUST NOT exceed `now + maxTimeoutSeconds` at verification. |
+| `preApprovalExpiry` | `number` | Unix seconds. `PaymentInfo.pre_approval_expiry`. MUST NOT exceed `now + maxTimeoutSeconds` at verification, nor `captureDeadline`. Clients use `min(now + maxTimeoutSeconds, captureDeadline)`. |
 
 The payer is the address in the entry's credentials. The facilitator rebuilds `PaymentInfo` from the requirements and these fields as the [appendix](#paymentinfo-struct) sets out.
 
@@ -204,8 +206,6 @@ For `refund`, `funderEntry` is the funder's signed entry. Its root invocation is
 
 `consentEntry` MUST use address credentials, MUST have the escrow call above as its root invocation with arguments matching the payload exactly, and MUST have no sub-invocations except the refund transfer when the consent address is also the funder.
 
-When the consent address equals `captureAuthorizer` (a server that runs its own facilitator), the escrow skips the second `require_auth` for that address. The transaction source account authorizes both roles and `consentEntry` is omitted.
-
 ## Verification
 
 ### Common checks
@@ -258,7 +258,7 @@ The facilitator reads `payment_state(payment_hash)` for balance checks and MUST 
 
 ## Refund funding
 
-Refund liquidity comes from `funder`, an address chosen by the server, typically `payTo`. The funder authorizes the transfer itself. The escrow never pays a refund from held funds of other payments, and the facilitator is never the funder. Unlike the EVM `"delegated"` binding, a facilitator MAY relay refunds, because no value it controls is at risk.
+Refund liquidity comes from `funder`, an address chosen by the server, typically `payTo`. The funder authorizes the transfer itself. The escrow never pays a refund from held funds of other payments, and rejects the operator and itself as funder. Unlike the EVM `"delegated"` binding, a facilitator MAY relay refunds, because no value it controls is at risk.
 
 ## Replay protection
 
@@ -301,7 +301,15 @@ The escrow contract holds SAC balances without a trustline.
 
 ## Storage lifetime
 
-Payment state is persistent contract storage. The escrow extends its TTL on every write to cover `refund_expiry`, up to the network's maximum entry TTL. If a refund window exceeds that maximum, anyone can extend or restore the entry before the next operation; archived persistent entries are restorable and never lost.
+Payment state is persistent contract storage. The escrow extends its TTL on every write to cover `refund_expiry`, assuming 5-second ledgers, up to the network's maximum entry TTL. If the window exceeds that maximum or ledgers close faster, the entry can be archived before `refund_expiry`. Archived persistent entries are restorable and never lost. The entry must be restored (simulation returns a restore preamble) before the next operation; a facilitator MAY submit the restore itself.
+
+Keeping state until `refund_expiry` makes `authorize` and `charge` more expensive in resource fees than an `exact` transfer. Facilitators SHOULD size their fee ceiling accordingly; the reference implementation defaults to 1,000,000 stroops.
+
+## Security considerations
+
+- **Shared balance.** The escrow holds all payments of a token in one balance; per-payment accounting keeps each payment's funds separate. An asset issuer that claws back or freezes the escrow's balance affects every pending payment in that asset. Servers SHOULD NOT accept assets with clawback enabled.
+- **Blocked recipients.** If the fee receiver or the payer cannot receive the token (missing or deauthorized trustline), `capture` with a fee or with `voidRemainder` fails. Funds stay held; the server can capture without `voidRemainder`, and the payer can `reclaim` after `captureDeadline`.
+- **Operator trust.** The operator only submits transactions. It cannot move funds without the payer's entry (collect) or the consent address's entry (all other operations). A facilitator MUST NOT let its source-account authority extend below the escrow root invocation, so a malicious token cannot use it. It attaches an explicit `sorobanCredentialsSourceAccount` entry whose invocation tree is the escrow call alone; enforcing-mode simulation then fails if anything else requires the operator's authorization.
 
 ## Error codes
 
@@ -328,7 +336,7 @@ Verification errors use the prefix `invalid_auth_capture_stellar_`:
 
 | Network | `AuthCaptureEscrow` |
 | --- | --- |
-| `stellar:testnet` | `CAZUU5HON2LQBRLWNTQX2NFWB7AYMCZRZT6C6N7KUPP6AOAXNFCF6FK2` |
+| `stellar:testnet` | `CCB3W5542IQIVWT3ZDTSQIN2LPRMVYLZ2KKQOJT2CTIIDDTYIQVHHCCI` |
 | `stellar:pubnet` | TBD |
 
 ## Appendix

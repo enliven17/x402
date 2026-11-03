@@ -44,12 +44,6 @@ export interface AuthCaptureStellarFacilitatorConfig {
   inclusionFeeStroops?: number;
   /** Fee terms advertised on `/supported` (default: zero fees). */
   feeTerms?: AuthCaptureFeeTerms;
-  /**
-   * Accept payments whose `receiverAuthorizer` is the operator, for a server that runs its
-   * own facilitator. The escrow then skips the consent check and `consentEntry` is omitted.
-   * Default `false`: the facilitator never acts as the consent address.
-   */
-  allowOperatorConsent?: boolean;
   /** Chooses the advertised `captureAuthorizer` (default: round-robin over the signers). */
   selectCaptureAuthorizer?: (addresses: readonly string[]) => string;
 }
@@ -119,7 +113,6 @@ export class AuthCaptureStellarScheme implements SchemeNetworkFacilitator {
       maxTransactionFeeStroops:
         config.maxTransactionFeeStroops ?? DEFAULT_MAX_TRANSACTION_FEE_STROOPS,
       inclusionFeeStroops: config.inclusionFeeStroops ?? Number(BASE_FEE),
-      allowOperatorConsent: config.allowOperatorConsent ?? false,
       facilitatorAddresses: new Set(this.signers.keys()),
     };
   }
