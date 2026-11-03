@@ -2,16 +2,12 @@ import { Keypair, Networks, rpc } from "@stellar/stellar-sdk";
 import { x402Client } from "@x402/core/client";
 import { x402Facilitator } from "@x402/core/facilitator";
 import { x402ResourceServer, type FacilitatorClient } from "@x402/core/server";
-import type {
-  PaymentPayload,
-  PaymentRequirements,
-  SettleResponse,
-  SupportedResponse,
-  VerifyResponse,
-} from "@x402/core/types";
 import { beforeAll, describe, expect, it } from "vitest";
+import { friendbot, issueTestToken, RPC_TESTNET } from "./authCaptureSetup";
 import { createEd25519Signer, STELLAR_TESTNET_CAIP2 } from "../../src";
 import { AuthCaptureStellarScheme as AuthCaptureClient } from "../../src/auth-capture/client";
+import { AUTH_CAPTURE_ESCROW_ADDRESSES } from "../../src/auth-capture/constants";
+import { parseAuthCaptureExtra } from "../../src/auth-capture/extra";
 import { AuthCaptureStellarScheme as AuthCaptureFacilitator } from "../../src/auth-capture/facilitator";
 import {
   AuthCaptureStellarScheme as AuthCaptureServer,
@@ -19,11 +15,15 @@ import {
   paymentInfoFromCollect,
   type AuthCaptureLifecycleManager,
 } from "../../src/auth-capture/server";
-import { AUTH_CAPTURE_ESCROW_ADDRESSES } from "../../src/auth-capture/constants";
-import { parseAuthCaptureExtra } from "../../src/auth-capture/extra";
 import { readPaymentState, readTokenBalance } from "../../src/auth-capture/soroban";
 import type { AuthCaptureCollectPayload, PaymentState } from "../../src/auth-capture/types";
-import { friendbot, issueTestToken, RPC_TESTNET } from "./authCaptureSetup";
+import type {
+  PaymentPayload,
+  PaymentRequirements,
+  SettleResponse,
+  SupportedResponse,
+  VerifyResponse,
+} from "@x402/core/types";
 
 const ESCROW = AUTH_CAPTURE_ESCROW_ADDRESSES[STELLAR_TESTNET_CAIP2];
 const MAX_AMOUNT = 10_000_000n; // 1 unit of a 7-decimal token
