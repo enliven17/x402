@@ -6,6 +6,9 @@ const baseConfig = {
     "exact/client/index": "src/exact/client/index.ts",
     "exact/server/index": "src/exact/server/index.ts",
     "exact/facilitator/index": "src/exact/facilitator/index.ts",
+    "auth-capture/client/index": "src/auth-capture/client/index.ts",
+    "auth-capture/server/index": "src/auth-capture/server/index.ts",
+    "auth-capture/facilitator/index": "src/auth-capture/facilitator/index.ts",
   },
   dts: {
     resolve: true,

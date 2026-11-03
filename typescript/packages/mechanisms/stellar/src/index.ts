@@ -10,6 +10,10 @@
 // Exact scheme client
 export { ExactStellarScheme } from "./exact";
 
+// Auth-capture scheme: shared types, constants and encoding helpers.
+// Role implementations are imported from `@x402/stellar/auth-capture/{client,server,facilitator}`.
+export * as authCapture from "./auth-capture";
+
 // Types
 export * from "./types";
 
