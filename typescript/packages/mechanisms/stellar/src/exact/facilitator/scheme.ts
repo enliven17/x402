@@ -5,14 +5,17 @@ import {
   Address,
   Operation,
   xdr,
-  rpc,
   TransactionBuilder,
   SignerKey,
   BASE_FEE,
 } from "@stellar/stellar-sdk";
 import { Api } from "@stellar/stellar-sdk/rpc";
 import { STELLAR_WILDCARD_CAIP2 } from "../../constants";
-import { gatherAuthEntrySignatureStatus, getAddressCredentials } from "../../shared";
+import {
+  gatherAuthEntrySignatureStatus,
+  getAddressCredentials,
+  pollForTransaction,
+} from "../../shared";
 import { ExactStellarPayloadV2 } from "../../types";
 import {
   getEstimatedLedgerCloseTimeSeconds,
@@ -375,7 +378,7 @@ export class ExactStellarScheme implements SchemeNetworkFacilitator {
       // Step 8: Poll for transaction confirmation
       txHash = sendResult.hash;
       const maxPollAttempts = requirements.maxTimeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS;
-      const confirmResult = await this.pollForTransaction(server, txHash, maxPollAttempts);
+      const confirmResult = await pollForTransaction(server, txHash, maxPollAttempts);
 
       if (!confirmResult.success) {
         return {
@@ -590,45 +593,6 @@ export class ExactStellarScheme implements SchemeNetworkFacilitator {
       console.error("Unexpected verification error:", error);
       return { response: invalidVerifyResponse("unexpected_verify_error", fromAddress) };
     }
-  }
-
-  /**
-   * Polls for transaction confirmation on Soroban.
-   *
-   * @param server - Soroban RPC server
-   * @param txHash - Transaction hash to poll for
-   * @param maxPollAttempts - Maximum number of polling attempts (default: 15)
-   * @param delayMs - Delay between attempts in milliseconds (default: 1000)
-   * @returns Result with success status
-   */
-  private async pollForTransaction(
-    server: rpc.Server,
-    txHash: string,
-    maxPollAttempts = 15,
-    delayMs = 1000,
-  ): Promise<{ success: boolean }> {
-    for (let i = 0; i < maxPollAttempts; i++) {
-      try {
-        const txResult = await server.getTransaction(txHash);
-
-        if (txResult.status === "SUCCESS") {
-          return { success: true };
-        } else if (txResult.status === "FAILED") {
-          return { success: false };
-        }
-
-        // Transaction still pending, wait and retry
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      } catch (error: unknown) {
-        if (error instanceof Error && !error.message.includes("NOT_FOUND")) {
-          console.warn(`Poll attempt ${i} failed:`, error);
-        }
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-
-    // Timeout
-    return { success: false };
   }
 
   /**

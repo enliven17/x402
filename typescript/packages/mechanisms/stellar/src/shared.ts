@@ -1,4 +1,4 @@
-import { Transaction, Address, humanizeEvents, Operation, xdr } from "@stellar/stellar-sdk";
+import { Transaction, Address, humanizeEvents, Operation, rpc, xdr } from "@stellar/stellar-sdk";
 import { Api, assembleTransaction } from "@stellar/stellar-sdk/rpc";
 import { InsufficientBalanceError, SimulationFailedError, TrustlineMissingError } from "./errors";
 
@@ -242,4 +242,43 @@ export function gatherAuthEntrySignatureStatus({
     alreadySigned: [...new Set(alreadySigned)], // Remove duplicates
     pendingSignature: [...new Set(pendingSignature)],
   };
+}
+
+/**
+ * Polls Soroban RPC until a submitted transaction reaches `SUCCESS` or `FAILED`.
+ *
+ * @param server - Soroban RPC server
+ * @param txHash - Transaction hash to poll for
+ * @param maxPollAttempts - Maximum number of polling attempts (default: 15)
+ * @param delayMs - Delay between attempts in milliseconds (default: 1000)
+ * @returns `success: true` only when the transaction landed with status `SUCCESS`
+ */
+export async function pollForTransaction(
+  server: rpc.Server,
+  txHash: string,
+  maxPollAttempts = 15,
+  delayMs = 1000,
+): Promise<{ success: boolean }> {
+  for (let i = 0; i < maxPollAttempts; i++) {
+    try {
+      const txResult = await server.getTransaction(txHash);
+
+      if (txResult.status === "SUCCESS") {
+        return { success: true };
+      } else if (txResult.status === "FAILED") {
+        return { success: false };
+      }
+
+      // Transaction still pending, wait and retry
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    } catch (error: unknown) {
+      if (error instanceof Error && !error.message.includes("NOT_FOUND")) {
+        console.warn(`Poll attempt ${i} failed:`, error);
+      }
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  // Timeout
+  return { success: false };
 }
