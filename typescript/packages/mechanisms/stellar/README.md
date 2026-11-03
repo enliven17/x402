@@ -69,6 +69,11 @@ This package provides three main components for handling x402 payments on Stella
 - `@x402/stellar/exact/client` - `ExactStellarScheme` (client)
 - `@x402/stellar/exact/server` - `ExactStellarScheme` (server)
 - `@x402/stellar/exact/facilitator` - `ExactStellarScheme` (facilitator)
+- `@x402/stellar/auth-capture/client` - `AuthCaptureStellarScheme` (client)
+- `@x402/stellar/auth-capture/server` - `AuthCaptureStellarScheme` (server), lifecycle manager and payload builders
+- `@x402/stellar/auth-capture/facilitator` - `AuthCaptureStellarScheme` (facilitator)
+
+See [`src/auth-capture/README.md`](src/auth-capture/README.md) for the `auth-capture` scheme.
 
 ## Supported Networks
 
@@ -159,6 +164,8 @@ RESOURCE_SERVER_ADDRESS=G...      # Resource server's public address
 
 > [!NOTE]
 > The facilitator account only needs XLM (step 1). Client and resource server accounts need all three steps.
+
+The `auth-capture` integration test (`test/integrations/auth-capture-stellar.test.ts`) needs no environment variables: it creates and Friendbot-funds fresh accounts, issues a test asset, deploys its Stellar Asset Contract, and runs against the testnet `AuthCaptureEscrow`.
 
 ## Related Packages
 
