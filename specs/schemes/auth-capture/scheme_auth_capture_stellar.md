@@ -198,9 +198,11 @@ Lifecycle payloads carry the full `paymentInfo` so the facilitator stays statele
 | `void` | `paymentInfo`, `consentEntry` | `void(payment_info)` |
 | `refund` | `paymentInfo`, `amount`, `funder`, `consentEntry`, `funderEntry` | `refund(payment_info, amount, funder)` |
 
-For `refund`, `funderEntry` is the funder's signed entry authorizing `transfer(funder, payer, amount)` on `requirements.asset`. It is omitted when `funder` equals the consent address, in which case the transfer is a sub-invocation of `consentEntry`.
+For `refund`, `funderEntry` is the funder's signed entry. Its root invocation is the same `refund(payment_info, amount, funder)` call, with exactly one sub-invocation: `transfer(funder, payer, amount)` on `requirements.asset`. Rooting the entry at the escrow call binds the funder's authorization to this payment and amount. `funderEntry` is omitted when `funder` equals the consent address; the consent entry then carries the transfer sub-invocation instead.
 
-`consentEntry` MUST use address credentials, MUST have the escrow call above as its root invocation with arguments matching the payload exactly, and MUST have no sub-invocations other than the refund transfer described above.
+`consentEntry` MUST use address credentials, MUST have the escrow call above as its root invocation with arguments matching the payload exactly, and MUST have no sub-invocations except the refund transfer when the consent address is also the funder.
+
+When the consent address equals `captureAuthorizer` (a server that runs its own facilitator), the escrow skips the second `require_auth` for that address. The transaction source account authorizes both roles and `consentEntry` is omitted.
 
 ## Verification
 
@@ -324,7 +326,7 @@ Verification errors use the prefix `invalid_auth_capture_stellar_`:
 
 | Network | `AuthCaptureEscrow` |
 | --- | --- |
-| `stellar:testnet` | TBD |
+| `stellar:testnet` | `CAZUU5HON2LQBRLWNTQX2NFWB7AYMCZRZT6C6N7KUPP6AOAXNFCF6FK2` |
 | `stellar:pubnet` | TBD |
 
 ## Appendix
