@@ -64,7 +64,7 @@ resourceServer.register("stellar:testnet", scheme);
 }
 ```
 
-`enhancePaymentRequirements` merges the facilitator's `/supported` extra (`areFeesSponsored`, `authCaptureEscrow`, `captureAuthorizer`, fee terms), resolves deadlines, and publishes the consent signer as `receiverAuthorizer` when it is not `payTo`. Escrow `"sync"` and `"authorization"` routes need a consent signer for the consent address unless that address is the operator.
+`enhancePaymentRequirements` merges the facilitator's `/supported` extra (`areFeesSponsored`, `authCaptureEscrow`, `captureAuthorizer`, fee terms), resolves deadlines, and publishes the consent signer as `receiverAuthorizer` when it is not `payTo`. Escrow `"sync"` and `"authorization"` routes need a consent signer for the consent address.
 
 | `paymentFlow` | `captureMode` | Before the handler | After the handler |
 | --- | --- | --- | --- |
