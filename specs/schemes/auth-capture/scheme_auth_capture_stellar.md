@@ -172,11 +172,13 @@ For `paymentFlow: "authorization"`, the server appends four fields before `/sett
 }
 ```
 
-`amount` is greater than zero and at most `requirements.amount`. `consentEntry` is the consent address's signed entry for `charge(payment_info, amount, fee_amount, fee_receiver)`.
+`amount` is greater than zero and at most `PaymentInfo.max_amount`. `consentEntry` is the consent address's signed entry for `charge(payment_info, amount, fee_amount, fee_receiver)`.
+
+When the server settles with a settlement override, `requirements.amount` at `/settle` equals the charged `amount` rather than the maximum. The facilitator then takes `max_amount` from the `transfer` sub-invocation of the client's entry; the entry shape check still binds it to `PaymentInfo`.
 
 ### Lifecycle payloads
 
-Lifecycle payloads carry the full `paymentInfo` so the facilitator stays stateless. A server using `captureMode: "deferred"` MUST store `paymentInfo` after collect.
+Lifecycle payloads carry the full `paymentInfo` so the facilitator stays stateless. A server using `captureMode: "deferred"` MUST store `paymentInfo` after collect. The facilitator checks `paymentInfo` against the requirements and `extra` field by field, except `maxAmount`: a lifecycle settle may carry a settlement override in `requirements.amount`.
 
 ```json
 {
